@@ -4,3 +4,5 @@ Saturdays
 https://raw.githubusercontent.com/OmariInLondon/dlrtest/refs/heads/main/timetables/saturdays/241109sa-public.csv
 Sundays
 https://raw.githubusercontent.com/OmariInLondon/dlrtest/refs/heads/main/timetables/sundays/241110su-public.csv
+Big Bannana
+https://raw.githubusercontent.com/OmariInLondon/dlrtest/refs/heads/main/banana.csv
