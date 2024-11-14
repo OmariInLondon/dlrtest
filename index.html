@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DLR Timetable Explorer</title>
+    <title>DLR Timetable Explorer v2</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -301,18 +301,24 @@
             const day = document.getElementById('daySelector').value;
             let csvText = '';
             try {
+                let response;
                 if (day === 'weekdays') {
-                    const response = await fetch('timetables/weekday/241104mf-public.csv');
-                    csvText = await response.text();
+                    response = await fetch('timetables/weekday/241104mf-public.csv');
                 } else if (day === 'saturdays') {
-                    const response = await fetch('timetables/saturday/241109sa-public.csv');
-                    csvText = await response.text();
+                    response = await fetch('timetables/saturday/241109sa-public.csv');
                 } else if (day === 'sundays') {
-                    const response = await fetch('timetables/sunday/241110su-public.csv');
-                    csvText = await response.text();
+                    response = await fetch('timetables/sunday/241110su-public.csv');
                 }
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+
+                csvText = await response.text();
+                console.log(`Successfully loaded ${day} CSV data.`);
             } catch (error) {
                 console.error('Error loading CSV data:', error);
+                alert('Failed to load CSV data. Please check the console for more details.');
                 return;
             }
 
