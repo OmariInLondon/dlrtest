@@ -1,0 +1,1880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DLR Timetable Explorer (Offline-Ready)</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 10px;
+            background-color: #121212;
+            color: #ffffff;
+        }
+        h1, h2, h3 {
+            color: #ffffff;
+            margin: 0;
+            font-size: 1.2em;
+        }
+        button {
+            background-color: #1e88e5;
+            color: #ffffff;
+            border: none;
+            padding: 6px 10px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #1565c0;
+        }
+        button:disabled {
+            background-color: #455a64;
+            cursor: not-allowed;
+        }
+        button.red-background {
+            background-color: #e53935;
+        }
+        button.red-background:hover {
+            background-color: #c62828;
+        }
+        #trainRunList {
+            margin-bottom: 10px;
+            border: 1px solid #424242;
+            padding: 10px;
+            border-radius: 5px;
+            background-color: #1e1e1e;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        #aboutText, #warningText {
+            display: none;
+            margin-top: 10px;
+            background-color: #1e1e1e;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #424242;
+        }
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(40px, 1fr));
+            gap: 5px;
+        }
+        .run-number {
+            cursor: pointer;
+            color: #1e88e5;
+            text-align: center;
+            padding: 6px;
+            border-radius: 5px;
+            border: 1px solid #424242;
+            transition: background-color 0.3s, color 0.3s;
+            font-size: 0.9em;
+        }
+        .run-number:hover {
+            background-color: #424242;
+            color: #ffffff;
+        }
+        .header-container .subheader-container h3:empty,
+        .header-container .navigation-container h3:empty,
+        .header-container .navigation-container .button-group:empty {
+            display: none;
+            margin: 0;
+            padding: 0;
+            height: 0;
+        }
+        .subheader-container {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 5px;
+            margin-top: 0;
+        }        
+        .navigation-container {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin: 5px 0;
+            width: 100%; /* Ensure it stretches */
+            justify-content: flex-start; /* Aligns everything to the left */
+        }
+        .button-group {
+            display: flex;
+            flex-direction: row;
+            gap: 5px;
+            align-items: center;
+            justify-content: flex-start; /* Ensures buttons stay aligned left */
+            margin-left: 0 !important; /* Forces alignment with table */
+        }
+        #currentRun {
+            font-size: 1.7em;
+            margin-bottom: 10px;
+        }
+        #trainDetails {
+            margin-top: 5px;
+            background-color: #1e1e1e;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #424242;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+            max-width: 800px;
+            min-height: 25px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        #aboutSection {
+            margin-top: 20px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        #aboutText {
+            display: none;
+            margin-top: 10px;
+            background-color: #1e1e1e;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #424242;
+        }
+        a {
+            color: #1e88e5;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .mint-green {
+            color: #98ff98;
+        }
+        
+        /* New table styles for consistency */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 5px;
+            table-layout: fixed;
+        }
+        th, td {
+            border: 1px solid #424242;
+            padding: 5px;
+            text-align: center;
+            font-size: 0.9em;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        th {
+            background-color: #1e88e5;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #2c2c2c;
+        }
+        tr.clickable {
+            cursor: pointer;
+        }
+        tr.clickable:hover {
+            background-color: #424242;
+        }
+        
+        /* Trip List Table column widths */
+        #detailsOutput table.trip-list-table tr th:nth-child(1),
+        #detailsOutput table.trip-list-table tr td:nth-child(1) {
+            width: 10%; /* Trip */
+        }
+        #detailsOutput table.trip-list-table tr th:nth-child(2),
+        #detailsOutput table.trip-list-table tr td:nth-child(2),
+        #detailsOutput table.trip-list-table tr th:nth-child(4),
+        #detailsOutput table.trip-list-table tr td:nth-child(4) {
+            width: 30%; /* From and To */
+        }
+        #detailsOutput table.trip-list-table tr th:nth-child(3),
+        #detailsOutput table.trip-list-table tr td:nth-child(3),
+        #detailsOutput table.trip-list-table tr th:nth-child(5),
+        #detailsOutput table.trip-list-table tr td:nth-child(5) {
+            width: 15%; /* Departing and Arriving */
+        }
+
+        /* Stops Table column widths (for all timings and individual trip) */
+        #detailsOutput table.stops-table tr th:nth-child(1),
+        #detailsOutput table.stops-table tr td:nth-child(1) {
+            width: 55%; /* Location */
+        }
+        #detailsOutput table.stops-table tr th:nth-child(2),
+        #detailsOutput table.stops-table tr td:nth-child(2) {
+            width: 15%; /* Pl */
+        }
+        #detailsOutput table.stops-table tr th:nth-child(3),
+        #detailsOutput table.stops-table tr td:nth-child(3),
+        #detailsOutput table.stops-table tr th:nth-child(4),
+        #detailsOutput table.stops-table tr td:nth-child(4) {
+            width: 15%; /* Arriving, Departing */
+        }
+
+        /* Media query for mobile devices */
+        @media screen and (max-width: 768px) {
+            table {
+                table-layout: auto;
+                transform: scale(0.95);
+                transform-origin: top left;
+                width: 105%;
+                margin-right: -5%;
+                font-size: 0.95em;
+                margin-bottom: 0;
+            }
+            
+            th, td {
+                overflow: visible;
+                text-overflow: clip;
+                width: auto !important;
+                padding: 3px;
+                vertical-align: middle;
+            }
+            
+            tr {
+                height: 44px !important;
+            }
+            
+            #detailsOutput table.trip-list-table tr td:nth-child(1),
+            #detailsOutput table.trip-list-table tr td:nth-child(3),
+            #detailsOutput table.trip-list-table tr td:nth-child(5) {
+                white-space: nowrap;
+                min-width: 50px;
+            }
+            
+            #detailsOutput table.stops-table tr td:nth-child(2),
+            #detailsOutput table.stops-table tr td:nth-child(3),
+            #detailsOutput table.stops-table tr td:nth-child(4) {
+                white-space: nowrap;
+                min-width: 50px;
+            }
+            
+            #detailsOutput table tr td:nth-child(1) {
+                white-space: normal;
+                word-break: normal;
+                overflow-wrap: break-word;
+            }
+            
+            #detailsOutput table.trip-list-table tr td:nth-child(2),
+            #detailsOutput table.trip-list-table tr td:nth-child(4) {
+                white-space: normal;
+                word-break: normal;
+                overflow-wrap: break-word;
+            }
+            
+            #trainDetails {
+                padding: 5px;
+                overflow: hidden;
+            }
+            
+            #detailsOutput {
+                display: inline-block;
+                width: 100%;
+            }
+            
+            #detailsOutput:after {
+                content: "";
+                display: table;
+                clear: both;
+            }
+        }
+        
+        /* New offline mode styles */
+        .offline-indicator {
+            background-color: #388e3c;
+            color: #ffffff;
+            padding: 8px;
+            text-align: center;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            display: none; /* Hidden by default */
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        #preloadSection {
+            border: 1px solid #424242;
+            padding: 10px;
+            border-radius: 5px;
+            background-color: #1e1e1e;
+            margin-bottom: 10px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        #preloadButton {
+            width: 100%;
+            padding: 10px;
+            background-color: #388e3c;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        #preloadButton:hover {
+            background-color: #2e7d32;
+        }
+        
+        #preloadStatus {
+            margin-top: 10px;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        #preloadProgress {
+            width: 100%;
+            height: 20px;
+            margin-top: 10px;
+            border-radius: 5px;
+            background-color: #424242;
+            overflow: hidden;
+            display: none;
+        }
+        
+        #preloadProgressBar {
+            height: 100%;
+            background-color: #1e88e5;
+            width: 0%;
+        }
+        
+        .data-container {
+            display: none; /* Hidden container for preloaded data */
+        }
+        
+        @keyframes gradientCycle {
+            0% { background-position: 150% 0%, 0% 50%; }
+            33% { background-position: 100% 100%, 50% 50%; }
+            66% { background-position: 50% 50%, 100% 0%; }
+            100% { background-position: 0% 0%, 150% 50%; }
+        }
+    </style>
+</head>
+<body>
+    <h1>DLR Timetable Explorer Tool</h1>
+    
+    <!-- Offline indicator - shows when offline mode is active -->
+    <div id="offlineIndicator" class="offline-indicator">
+        ✅ Offline Mode Active - All data is preloaded and can be used without internet
+    </div>
+    
+    <!-- Standard content as in index.html -->
+    <div style="margin-bottom: 10px; max-width: 800px; margin-left: auto; margin-right: auto;">
+        <label for="daySelector">Select Timetable:</label>
+        <select id="daySelector" onchange="processCSVAndUpdateURL()">
+        </select>
+    </div>
+    
+    <!-- Preload section - shown only until preload is complete -->
+    <div id="preloadSection">
+        <h2 style="margin-bottom: 10px;">Offline Mode Setup</h2>
+        <p>To use this page offline, load all timetable data and then save as an MHT file:</p>
+        <button id="preloadButton" onclick="preloadAllData()">
+            📥 Preload All Timetable Data for Offline Use
+        </button>
+        <div id="preloadProgress">
+            <div id="preloadProgressBar"></div>
+        </div>
+        <div id="preloadStatus"></div>
+    </div>
+    
+    <div id="trainRunList">
+        <h2>Train Run Numbers</h2>
+        <div class="grid-container" id="runNumberList" style="margin-top: 10px; margin-bottom: 10px;"></div>
+    </div>
+    
+    <div id="trainDetails">
+        <div class="header-container">
+            <div class="subheader-container">
+                <h3 id="currentRun"></h3>
+            </div>
+            <div class="navigation-container">
+                <h3 id="tripDetailsHeader"></h3>
+                <div class="button-group" id="navigationButtons"></div>
+            </div>
+        </div>
+        <div style="margin-bottom: 5px;" id="detailsOutput">Select a run to view info, or switch to <a href="/search" style="color: #1e88e5; text-decoration: none;">search by location</a> (New!)</div>
+    </div>
+
+    <div id="aboutSection">
+        <a href="#" id="aboutLink" onclick="toggleAboutSection(); return false;">About this tool</a>
+        <div id="aboutText">
+            Created by <span style="background: linear-gradient(to right, 
+                            hsl(300, 80%, 70%), 
+                            hsl(270, 80%, 61%), 
+                            hsl(235, 85%, 55%), 
+                            hsl(300, 80%, 70%)); 
+                          background-size: 300% 300%; 
+                          -webkit-background-clip: text; 
+                          color: transparent; 
+                          font-weight: bold; 
+                          animation: gradientCycle 5s linear infinite;">
+                          Omari A.</span> 🏳️‍🌈 using 
+            <a href="https://tfl.gov.uk/corporate/transparency/freedom-of-information/foi-request-detail?referenceId=FOI-2196-2425" target="_blank">
+                publicly available data</a>.<br><br>
+            This is a simple tool that pulls data from the raw Working Timetable (WTT) files. However, there may be unknown issues, and 
+            <b>no liability is taken for any incorrect information shown.</b><br><br>
+            This tool uses the base WTTs (currently <span id="timetableFiles"></span>) and will be incorrect during periods of modified working 
+            (e.g., weekend engineering works).<br><br>
+            <b>Updates:</b><br>
+            06/03/25 Added a brand new 'search by location' page! You can now look up train services based on locations, platform number, and departure time.<br><br>
+            01/03/25 The tool now automatically detects and shows when runs transition throughout the day (i.e Run 302 becoming Run 456.)<br><br>
+            19/02/25 The tool will now default to the correct timetable for the current day of the week, and has had live service status added to warn when info is likely incorrect.
+        </div>
+    </div>
+    
+    <!-- Hidden container for the preloaded data -->
+    <div id="preloadedDataContainer" class="data-container">
+        <!-- This will be filled with the preloaded data -->
+    </div>
+
+    <script>
+        // Flag to check if we're running in offline mode
+        let isOfflineMode = false;
+        
+        // Storage for all preloaded data
+        const preloadedData = {
+            paths: null,
+            archivedPaths: null,
+            timetables: {}
+        };
+        
+        // Modified fetch function that checks preloaded data first
+        const originalFetch = window.fetch;
+        window.fetch = async function(url, options) {
+            if (isOfflineMode) {
+                // For timetable CSVs
+                if (url.includes('timetables') && url.endsWith('.csv')) {
+                    const fileName = url.substring(url.lastIndexOf('/') + 1, url.lastIndexOf('.'));
+                    if (preloadedData.timetables[fileName]) {
+                        return {
+                            ok: true,
+                            text: () => Promise.resolve(preloadedData.timetables[fileName])
+                        };
+                    }
+                }
+                
+                // For paths.txt
+                if (url.includes('paths.txt')) {
+                    return {
+                        ok: true,
+                        text: () => Promise.resolve(preloadedData.paths)
+                    };
+                }
+                
+                // For archivedpaths.txt
+                if (url.includes('archivedpaths.txt')) {
+                    return {
+                        ok: true,
+                        text: () => Promise.resolve(preloadedData.archivedPaths)
+                    };
+                }
+                
+                // For TfL API (just skip, as requested)
+                if (url.includes('api.tfl.gov.uk')) {
+                    return {
+                        ok: true,
+                        json: () => Promise.resolve([{ 
+                            lineStatuses: [{ statusSeverity: 10 }] 
+                        }])
+                    };
+                }
+                
+                // For any other URLs, fail gracefully
+                console.warn('Fetch not available in offline mode:', url);
+                return {
+                    ok: false,
+                    status: 404,
+                    text: () => Promise.resolve('')
+                };
+            }
+            
+            // Fall back to regular fetch for online mode
+            return originalFetch(url, options);
+        };
+        
+        // Function to preload all data
+        async function preloadAllData() {
+            const statusElement = document.getElementById('preloadStatus');
+            const progressBar = document.getElementById('preloadProgressBar');
+            const progressContainer = document.getElementById('preloadProgress');
+            const preloadButton = document.getElementById('preloadButton');
+            
+            // Show progress bar and disable button
+            progressContainer.style.display = 'block';
+            preloadButton.disabled = true;
+            
+            try {
+                statusElement.textContent = 'Loading configuration files...';
+                statusElement.style.color = '#ffffff';
+                progressBar.style.width = '5%';
+                
+                // 1. Load paths.txt
+                const pathsResponse = await originalFetch('https://raw.githubusercontent.com/dlrttbl/dlrttbl.github.io/refs/heads/main/paths.txt', { cache: 'no-store' });
+                preloadedData.paths = await pathsResponse.text();
+                progressBar.style.width = '10%';
+                
+                // Extract timetable URLs
+                const timetableUrls = [];
+                const pathLines = preloadedData.paths.split('\n');
+                for (let i = 0; i < pathLines.length; i++) {
+                    if (pathLines[i].startsWith('URL:')) {
+                        timetableUrls.push(pathLines[i].substring(4).trim());
+                    }
+                }
+                
+                // 2. Load archivedpaths.txt
+                const archivedResponse = await originalFetch('https://raw.githubusercontent.com/dlrttbl/dlrttbl.github.io/refs/heads/main/archivedpaths.txt', { cache: 'no-store' });
+                preloadedData.archivedPaths = await archivedResponse.text();
+                progressBar.style.width = '15%';
+                
+                // Extract archived timetable URLs
+                const archivedLines = preloadedData.archivedPaths.split('\n');
+                for (let i = 0; i < archivedLines.length; i++) {
+                    if (archivedLines[i].startsWith('URL:')) {
+                        timetableUrls.push(archivedLines[i].substring(4).trim());
+                    }
+                }
+                
+                // 3. Load all timetables
+                let loadedCount = 0;
+                const progressIncrement = 80 / timetableUrls.length;
+                
+                for (const url of timetableUrls) {
+                    const fileName = url.substring(url.lastIndexOf('/') + 1, url.lastIndexOf('.'));
+                    statusElement.textContent = `Loading timetable ${loadedCount+1}/${timetableUrls.length}: ${fileName}`;
+                    
+                    try {
+                        const response = await originalFetch(url);
+                        preloadedData.timetables[fileName] = await response.text();
+                        loadedCount++;
+                        
+                        // Update progress
+                        progressBar.style.width = `${15 + (loadedCount * progressIncrement)}%`;
+                    } catch (error) {
+                        console.error(`Failed to load ${fileName}:`, error);
+                    }
+                }
+                
+                // 4. Store data in DOM for MHT snapshot
+                statusElement.textContent = 'Storing data for offline use...';
+                progressBar.style.width = '95%';
+                
+                const dataContainer = document.getElementById('preloadedDataContainer');
+                dataContainer.innerHTML = ''; // Clear previous data
+                
+                // Create a data element for each type
+                const createDataElement = (id, data) => {
+                    const element = document.createElement('div');
+                    element.id = id;
+                    element.setAttribute('data-content', data);
+                    return element;
+                };
+                
+                dataContainer.appendChild(createDataElement('paths-data', preloadedData.paths));
+                dataContainer.appendChild(createDataElement('archived-paths-data', preloadedData.archivedPaths));
+                
+                // Add timetable data
+                for (const [fileName, data] of Object.entries(preloadedData.timetables)) {
+                    dataContainer.appendChild(createDataElement(`timetable-${fileName}`, data));
+                }
+                
+                // 5. Activate offline mode
+                isOfflineMode = true;
+                document.getElementById('offlineIndicator').style.display = 'block';
+                document.getElementById('preloadSection').style.display = 'none';
+                progressBar.style.width = '100%';
+                
+                // 6. Refresh the page content
+                await fetchTimetablePaths();
+                const defaultTimetable = Object.keys(timetablePaths)[0];
+                if (defaultTimetable) {
+                    const newURL = `${window.location.pathname}#timetable=${defaultTimetable}`;
+                    window.history.replaceState(null, '', newURL);
+                    await processCSVFromURL();
+                }
+                
+                statusElement.textContent = "✅ All data loaded! Now save this page as MHT (Web Page, Complete) for offline use.";
+                statusElement.style.color = "#4CAF50";
+                
+                // Add a save prompt
+                setTimeout(() => {
+                    alert("Data preloading complete! Now please save this page as an MHT file (Web Page, Complete) to use it offline.\n\nIn Chrome/Edge: Right-click > Save as > Web Page, Complete (*.mht)");
+                }, 500);
+                
+            } catch (error) {
+                console.error('Error preloading data:', error);
+                statusElement.textContent = `❌ Error: ${error.message}. Please try again.`;
+                statusElement.style.color = "#e53935";
+                preloadButton.disabled = false;
+            }
+        }
+        
+        // Function to load preloaded data when refreshing the page
+        function loadPreloadedDataFromDOM() {
+            const dataContainer = document.getElementById('preloadedDataContainer');
+            if (!dataContainer) return false;
+            
+            try {
+                // Try to load paths data
+                const pathsEl = document.getElementById('paths-data');
+                if (pathsEl && pathsEl.getAttribute('data-content')) {
+                    preloadedData.paths = pathsEl.getAttribute('data-content');
+                    
+                    // Try to load all other data
+                    const archivedPathsEl = document.getElementById('archived-paths-data');
+                    if (archivedPathsEl) {
+                        preloadedData.archivedPaths = archivedPathsEl.getAttribute('data-content');
+                    }
+                    
+                    // Load timetable data
+                    const timetableEls = dataContainer.querySelectorAll('div[id^="timetable-"]');
+                    for (const el of timetableEls) {
+                        const fileName = el.id.substring('timetable-'.length);
+                        preloadedData.timetables[fileName] = el.getAttribute('data-content');
+                    }
+                    
+                    // Activate offline mode if we loaded data
+                    if (Object.keys(preloadedData.timetables).length > 0) {
+                        isOfflineMode = true;
+                        document.getElementById('offlineIndicator').style.display = 'block';
+                        document.getElementById('preloadSection').style.display = 'none';
+                        return true;
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading preloaded data:', error);
+            }
+            
+            return false;
+        }
+        
+        // Now I'll add the core functionality from the original index.html
+
+        let currentRunData = null;
+        let showingAllTimings = false;
+        let selectedTrip = null;
+        let currentTrips = [];
+        let timetablePaths = {};
+        let archivedTimetablePaths = {};
+        let currentPath = null;
+        let isLoadingFromURL = false;
+        let runTransitions = {};
+
+        async function fetchTimetablePaths() {
+            try {
+                // Use preloaded data if in offline mode
+                let text;
+                if (isOfflineMode && preloadedData.paths) {
+                    text = preloadedData.paths;
+                } else {
+                    // Fetch main timetables
+                    const response = await fetch('https://raw.githubusercontent.com/dlrttbl/dlrttbl.github.io/refs/heads/main/paths.txt', { cache: 'no-store' });
+                    text = await response.text();
+                }
+                
+                const lines = text.split('\n').filter(line => line.trim() !== '');
+                
+                let currentEntry = {};
+                const timetableEntries = [];
+                
+                // Parse the format
+                for (const line of lines) {
+                    const trimmedLine = line.trim();
+                    if (trimmedLine.startsWith('Name:')) {
+                        if (Object.keys(currentEntry).length > 0) {
+                            timetableEntries.push({...currentEntry});
+                        }
+                        currentEntry = {
+                            name: trimmedLine.substring(5).trim()
+                        };
+                    } else if (trimmedLine.startsWith('Applies:')) {
+                        currentEntry.applies = trimmedLine.substring(8).trim();
+                    } else if (trimmedLine.startsWith('URL:')) {
+                        currentEntry.url = trimmedLine.substring(4).trim();
+                        const fileName = currentEntry.url.substring(currentEntry.url.lastIndexOf('/') + 1, currentEntry.url.lastIndexOf('.'));
+                        currentEntry.fileName = fileName.toLowerCase();
+                    }
+                }
+                
+                // Add the last entry
+                if (Object.keys(currentEntry).length > 0) {
+                    timetableEntries.push(currentEntry);
+                }
+
+                // Fetch archived timetables
+                try {
+                    let archivedText;
+                    if (isOfflineMode && preloadedData.archivedPaths) {
+                        archivedText = preloadedData.archivedPaths;
+                    } else {
+                        const archivedResponse = await fetch('https://raw.githubusercontent.com/dlrttbl/dlrttbl.github.io/refs/heads/main/archivedpaths.txt', { cache: 'no-store' });
+                        archivedText = await archivedResponse.text();
+                    }
+                    
+                    const archivedLines = archivedText.split('\n').filter(line => line.trim() !== '');
+                    
+                    let currentArchivedEntry = {};
+                    // Process archived timetables
+                    for (const line of archivedLines) {
+                        const trimmedLine = line.trim();
+                        if (trimmedLine.startsWith('Name:')) {
+                            if (Object.keys(currentArchivedEntry).length > 0) {
+                                const fileName = currentArchivedEntry.url.substring(currentArchivedEntry.url.lastIndexOf('/') + 1, currentArchivedEntry.url.lastIndexOf('.'));
+                                archivedTimetablePaths[fileName.toLowerCase()] = {
+                                    url: currentArchivedEntry.url,
+                                    name: currentArchivedEntry.name
+                                };
+                            }
+                            currentArchivedEntry = {
+                                name: trimmedLine.substring(5).trim()
+                            };
+                        } else if (trimmedLine.startsWith('URL:')) {
+                            currentArchivedEntry.url = trimmedLine.substring(4).trim();
+                        }
+                    }
+                    // Add the last archived entry
+                    if (Object.keys(currentArchivedEntry).length > 0) {
+                        const fileName = currentArchivedEntry.url.substring(currentArchivedEntry.url.lastIndexOf('/') + 1, currentArchivedEntry.url.lastIndexOf('.'));
+                        archivedTimetablePaths[fileName.toLowerCase()] = {
+                            url: currentArchivedEntry.url,
+                            name: currentArchivedEntry.name
+                        };
+                    }
+                } catch (error) {
+                    console.error('Error fetching archived timetable paths:', error);
+                }
+
+                // Clear and populate the day selector
+                const select = document.getElementById('daySelector');
+                select.innerHTML = '';
+                
+                // Sort timetables based on current date and time
+                const sortedEntries = sortTimetablesByApplicability(timetableEntries);
+                
+                // Process entries
+                sortedEntries.forEach(entry => {
+                    timetablePaths[entry.fileName] = entry.url;
+                    
+                    const option = document.createElement('option');
+                    option.value = entry.fileName;
+                    option.textContent = entry.name;
+                    select.appendChild(option);
+                });
+
+                // Update the about section
+                const fileNames = sortedEntries.map(entry => 
+                    `'<span class="mint-green">${entry.fileName}</span>'`
+                );
+                const fileNamesText = fileNames.length > 1
+                    ? fileNames.slice(0, -1).join(', ') + ', and ' + fileNames.slice(-1)
+                    : fileNames[0];
+                document.getElementById('timetableFiles').innerHTML = fileNamesText;
+                
+                return sortedEntries[0]?.fileName; // Return the most applicable timetable
+            } catch (error) {
+                console.error('Error fetching timetable paths:', error);
+                return null;
+            }
+        }
+
+        function getOperatingDate() {
+            const now = new Date();
+            // If it's before 3 AM, use the previous day's date
+            if (now.getHours() < 3) {
+                now.setDate(now.getDate() - 1);
+            }
+            return now;
+        }
+
+        function parseDateRange(dateStr) {
+            // Remove quotes first
+            dateStr = dateStr.replace(/['"]/g, '');
+            
+            // Handle date ranges with '/'
+            if (dateStr.includes('/')) {
+                const [start, end] = dateStr.split('/').map(d => {
+                    const newDate = new Date(d.trim());
+                    newDate.setHours(0, 0, 0, 0);
+                    return newDate;
+                });
+                return { start, end };
+            }
+            
+            // Handle single date
+            const newDate = new Date(dateStr);
+            newDate.setHours(0, 0, 0, 0);
+            return { 
+                start: newDate, 
+                end: newDate 
+            };
+        }
+
+        function getDayName(date) {
+            return date.toLocaleDateString('en-US', { weekday: 'long' });
+        }
+
+        function isDateInRange(date, rangeStr) {
+            // Remove quotes and split by comma if multiple values
+            const ranges = rangeStr.split(',').map(r => r.trim().replace(/['"]/g, ''));
+            
+            // Check each range
+            return ranges.some(range => {
+                // If it's a day name
+                if (['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].includes(range)) {
+                    return getDayName(date) === range;
+                }
+                
+                // If it's a date or date range
+                const dateRange = parseDateRange(range);
+                const compareDate = new Date(date);
+                compareDate.setHours(0, 0, 0, 0);
+                return compareDate >= dateRange.start && compareDate <= dateRange.end;
+            });
+        }
+        
+        function sortTimetablesByApplicability(entries) {
+            const operatingDate = getOperatingDate();
+            const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+            
+            return entries.sort((a, b) => {
+                const aApplies = a.applies.split(',').map(s => s.trim().replace(/['"]/g, ''));
+                const bApplies = b.applies.split(',').map(s => s.trim().replace(/['"]/g, ''));
+                
+                // Check if either timetable has a specific date (anything that's not a day name)
+                const aHasSpecificDate = aApplies.some(range => !dayNames.includes(range));
+                const bHasSpecificDate = bApplies.some(range => !dayNames.includes(range));
+                
+                // Check if either timetable applies to the current date/day
+                const aAppliesNow = aApplies.some(range => isDateInRange(operatingDate, range));
+                const bAppliesNow = bApplies.some(range => isDateInRange(operatingDate, range));
+                
+                // If both apply now, specific dates take precedence
+                if (aAppliesNow && bAppliesNow) {
+                    if (aHasSpecificDate && !bHasSpecificDate) return -1;
+                    if (!aHasSpecificDate && bHasSpecificDate) return 1;
+                }
+                
+                // Then timetables that apply today
+                if (aAppliesNow && !bAppliesNow) return -1;
+                if (!aAppliesNow && bAppliesNow) return 1;
+                
+                // If neither applies, sort by name
+                return a.name.localeCompare(b.name);
+            });
+        }
+
+        window.onload = () => {
+            // Check if we have preloaded data first
+            const hasPreloadedData = loadPreloadedDataFromDOM();
+            
+            if (hasPreloadedData) {
+                // Skip TfL status check and proceed with preloaded data
+                fetchTimetablePaths().then((defaultTimetable) => {
+                    if (!window.location.hash && defaultTimetable) {
+                        const newURL = `${window.location.pathname}#timetable=${defaultTimetable}`;
+                        window.history.replaceState(null, '', newURL);
+                        processCSVFromURL();
+                    } else {
+                        processCSVFromURL();
+                    }
+                });
+            } else {
+                // Proceed with default behavior for online mode
+                // No TfL status check in this version
+                fetchTimetablePaths().then((defaultTimetable) => {
+                    if (!window.location.hash && defaultTimetable) {
+                        const newURL = `${window.location.pathname}#timetable=${defaultTimetable}`;
+                        window.history.replaceState(null, '', newURL);
+                        processCSVFromURL();
+                    } else {
+                        processCSVFromURL();
+                    }
+                });
+            }
+
+            // Listen for hashchange event
+            window.addEventListener('hashchange', processCSVFromURL);
+        };
+
+        function toggleAboutSection() {
+            const aboutText = document.getElementById('aboutText');
+            if (aboutText.style.display === 'none' || aboutText.style.display === '') {
+                aboutText.style.display = 'block';
+            } else {
+                aboutText.style.display = 'none';
+            }
+        }
+
+        function showArchivedTimetables() {
+            const select = document.getElementById('daySelector');
+            // Clear existing options
+            select.innerHTML = '';
+            
+            // Get original names from paths.txt by fetching again
+            const fetchNames = async () => {
+                let text;
+                if (isOfflineMode && preloadedData.paths) {
+                    text = preloadedData.paths;
+                } else {
+                    const response = await fetch('https://raw.githubusercontent.com/dlrttbl/dlrttbl.github.io/refs/heads/main/paths.txt', { cache: 'no-store' });
+                    text = await response.text();
+                }
+                
+                const lines = text.split('\n').filter(line => line.trim() !== '');
+                
+                let currentEntry = {};
+                const timetableEntries = [];
+                
+                // Parse the active timetables
+                for (const line of lines) {
+                    const trimmedLine = line.trim();
+                    if (trimmedLine.startsWith('Name:')) {
+                        if (Object.keys(currentEntry).length > 0) {
+                            timetableEntries.push({...currentEntry});
+                        }
+                        currentEntry = {
+                            name: trimmedLine.substring(5).trim()
+                        };
+                    } else if (trimmedLine.startsWith('URL:')) {
+                        currentEntry.url = trimmedLine.substring(4).trim();
+                        const fileName = currentEntry.url.substring(currentEntry.url.lastIndexOf('/') + 1, currentEntry.url.lastIndexOf('.'));
+                        currentEntry.fileName = fileName.toLowerCase();
+                    }
+                }
+                
+                // Add the last entry
+                if (Object.keys(currentEntry).length > 0) {
+                    timetableEntries.push(currentEntry);
+                }
+
+                // Add active timetables
+                timetableEntries.forEach(entry => {
+                    const option = document.createElement('option');
+                    option.value = entry.fileName;
+                    option.textContent = entry.name;
+                    select.appendChild(option);
+                });
+
+                // Add archived timetables
+                Object.entries(archivedTimetablePaths).forEach(([fileName, data]) => {
+                    const option = document.createElement('option');
+                    option.value = fileName;
+                    option.textContent = data.name;
+                    select.appendChild(option);
+                });
+            };
+
+            fetchNames();
+        }
+
+        async function detectRunTransitions() {
+            // Fetch the raw CSV data again
+            let csvText = '';
+            try {
+                if (isOfflineMode && preloadedData.timetables) {
+                    const fileName = currentPath.substring(currentPath.lastIndexOf('/') + 1, currentPath.lastIndexOf('.'));
+                    csvText = preloadedData.timetables[fileName] || '';
+                } else {
+                    const response = await fetch(currentPath);
+                    csvText = await response.text();
+                }
+            } catch (error) {
+                console.error('Error loading CSV data for transition detection:', error);
+                return {};
+            }
+
+            const lines = csvText.split('\n').filter(line => line.trim() !== '');
+            const transitions = {};
+            
+            // Adjacency map of DLR stations
+            const adjacencyMap = {
+                "ABR": ["SHS", "WEH"],
+                "ALS": ["LAP", "POP"],
+                "BAN": ["SHA", "BANH"],
+                "BANH": ["BAN"],
+                "BEC": ["GAR"],
+                "BEP": ["CYP", "ROA"],
+                "BLA": ["EAI", "POP"],
+                "BOC": ["DER", "PML"],
+                "CAT": ["EAI", "ROV", "STL", "WST"],
+                "CAW": ["HEQ", "WES", "WIQ"],
+                "CRO": ["MUD", "SOQ"],
+                "CUH": ["PRR", "ROV"],
+                "CUS": ["GRE", "ISG"],
+                "CYP": ["BEP", "GAR"],
+                "DEB": ["ELR", "GRE"],
+                "DER": ["BOC", "LAP"],
+                "EAI": ["BLA", "CAT"],
+                "ELR": ["DEB", "LEW"],
+                "GAR": ["BEC", "CYP"],
+                "GRE": ["CUS", "DEB"],
+                "HEQ": ["CAW", "SOQ"],
+                "ISG": ["CUS", "MUD"],
+                "KGV": ["LCA", "WOA"],
+                "LAP": ["ALS", "DER"],
+                "LCA": ["KGV", "PDK"],
+                "LEW": ["ELR"],
+                "LIM": ["SHA", "WES"],
+                "MUD": ["CRO", "ISG"],
+                "PDK": ["LCA", "WST"],
+                "PML": ["BOC", "STR"],
+                "POP": ["ALS", "BLA", "WES", "WIQ"],
+                "PRR": ["CUH", "ROA"],
+                "ROA": ["BEP", "PRR"],
+                "ROV": ["CAT", "CUH"],
+                "SHA": ["BAN", "LIM", "TOG"],
+                "SHS": ["ABR", "STR"],
+                "SOQ": ["CRO", "HEQ"],
+                "STI": ["STR"],
+                "STL": ["CAT", "WEH"],
+                "STR": ["PML", "SHS", "STI"],
+                "TOG": ["SHA"],
+                "WEH": ["ABR", "STL"],
+                "WES": ["CAW", "LIM", "POP", "WIQ"],
+                "WIQ": ["CAW", "POP", "WES"],
+                "WOA": ["KGV"],
+                "WST": ["CAT", "PDK"]
+            };
+            
+            // Helper function to extract station code
+            function getStationCode(locationCode) {
+                if (locationCode === "BANH") return "BANH";
+                if (locationCode === "STR4B") return "STR";
+                return locationCode.substring(0, 3);
+            }
+            
+            // Function to check if stations are adjacent
+            function areStationsAdjacent(station1, station2) {
+                const code1 = getStationCode(station1);
+                const code2 = getStationCode(station2);
+                
+                // Same station (different platforms)
+                if (code1 === code2) return true;
+                
+                // Check adjacency map
+                if (adjacencyMap[code1] && adjacencyMap[code1].includes(code2)) return true;
+                if (adjacencyMap[code2] && adjacencyMap[code2].includes(code1)) return true;
+                
+                return false;
+            }
+            
+            // Function to parse time
+            function parseTime(timeStr) {
+                const [hours, minutes, seconds] = timeStr.split(':').map(Number);
+                return hours * 3600 + minutes * 60 + seconds;
+            }
+            
+            // First, create a map of run numbers to their line indices
+            const runLineIndices = {};
+            lines.forEach((line, index) => {
+                const parts = line.split(',');
+                if (parts.length >= 7) {
+                    const runNumber = parts[1].trim();
+                    if (!runLineIndices[runNumber]) {
+                        runLineIndices[runNumber] = [];
+                    }
+                    runLineIndices[runNumber].push(index);
+                }
+            });
+            
+            // Get a sorted list of all run numbers
+            const allRuns = Object.keys(runLineIndices);
+            
+            // For each run, find its last stop
+            for (const fromRun of allRuns) {
+                const fromRunIndices = runLineIndices[fromRun];
+                if (fromRunIndices.length === 0) continue;
+                
+                // Get the last line index for this run
+                const lastLineIndex = Math.max(...fromRunIndices);
+                const lastLine = lines[lastLineIndex];
+                const lastLineParts = lastLine.split(',');
+                
+                // Extract details from the last line
+                const lastLocationCode = lastLineParts[4].trim();
+                const lastDepartureTime = lastLineParts[6].trim();
+                const lastDepartureSeconds = parseTime(lastDepartureTime);
+                
+                // Skip if it's a junction
+                if (lastLocationCode.startsWith('J')) continue;
+                
+                // Check the next few lines to see if another run starts
+                const locationMapping = {
+                    'STR4B': 'Stratford',
+                    'BEC2': 'Beckton',
+                    'LEW6': 'Lewisham'
+                };
+                
+                for (let i = lastLineIndex + 1; i <= lastLineIndex + 3 && i < lines.length; i++) {
+                    const nextLine = lines[i];
+                    const nextLineParts = nextLine.split(',');
+                    
+                    if (nextLineParts.length < 7) continue;
+                    
+                    const nextRun = nextLineParts[1].trim();
+                    if (nextRun === fromRun) continue; // Skip same run
+                    
+                    // Only consider this if it's the first occurrence of the next run
+                    if (Math.min(...runLineIndices[nextRun]) !== i) continue;
+                    
+                    const nextLocationCode = nextLineParts[4].trim();
+                    const nextArrivalTime = nextLineParts[5].trim();
+                    const nextArrivalSeconds = parseTime(nextArrivalTime);
+                    
+                    // Skip if it's a junction
+                    if (nextLocationCode.startsWith('J')) continue;
+                    
+                    // Calculate time difference
+                    const timeDiffMinutes = (nextArrivalSeconds - lastDepartureSeconds) / 60;
+                    
+                    // Apply the three rules:
+                    // 1. Stations must be adjacent
+                    // 2. Time gap must be 0.5-5 minutes
+                    // 3. The runs should be examined in the order they appear in the data
+                    if (areStationsAdjacent(lastLocationCode, nextLocationCode) && 
+                        timeDiffMinutes >= 0.5 && 
+                        timeDiffMinutes <= 5) {
+                        
+                        // Get the location name
+                        let locationName = locationMapping[nextLocationCode] || 'Unknown';
+                        
+                        transitions[fromRun] = { 
+                            nextRun, 
+                            location: locationName 
+                        };
+                        
+                        // Just before returning, store the last location for UI purposes
+                        transitions[fromRun].fromLocation = lastLocationCode;                        
+                        
+                        break; // Found the next run, no need to check others
+                    }
+                }
+            }
+            
+            return transitions;
+        }
+
+        function detectTrips(stops) {
+            const trips = [];
+            let currentTrip = [];
+            let tripNumber = 1;
+
+            for (let i = 0; i < stops.length; i++) {
+                currentTrip.push(stops[i]);
+
+                if (i < stops.length - 2) {
+                    const loc1 = stops[i].location;
+                    const loc2 = stops[i + 1].location;
+                    const loc3 = stops[i + 2].location;
+
+                    if (loc1 === loc3 && loc1 !== loc2) {
+                        trips.push({
+                            tripNumber,
+                            from: currentTrip[0].location,
+                            departureTime: currentTrip[0].departureTime,
+                            to: loc2,
+                            arrivalTime: stops[i + 1].arrivalTime,
+                            stops: [...currentTrip, stops[i + 1]]
+                        });
+                        
+                        currentTrip = [stops[i + 1]];
+                        tripNumber++;
+                        i++;
+                    }
+                }
+            }
+
+            if (currentTrip.length > 0) {
+                trips.push({
+                    tripNumber,
+                    from: currentTrip[0].location,
+                    departureTime: currentTrip[0].departureTime,
+                    to: currentTrip[currentTrip.length - 1].location,
+                    arrivalTime: currentTrip[currentTrip.length - 1].arrivalTime,
+                    stops: [...currentTrip]
+                });
+            }
+
+            return trips;
+        }
+        
+        function getFormedFromRun(runNumber) {
+            for (const [fromRun, transition] of Object.entries(runTransitions)) {
+                if (transition.nextRun === runNumber) {
+                    // Use the last location of the previous run for "Formed from"
+                    const fromLocation = transition.fromLocation || transition.location;
+                    return { fromRun, location: fromLocation };
+                }
+            }
+            return null;
+        }
+
+        function updateNavigationButtons() {
+            const navigationButtons = document.getElementById('navigationButtons');
+            const tripDetailsHeader = document.getElementById('tripDetailsHeader');
+            navigationButtons.innerHTML = '';
+
+            // Only show navigation buttons if we have current run data
+            if (!currentRunData) {
+                tripDetailsHeader.textContent = '';
+                return;
+            }
+
+            if (selectedTrip) {
+                tripDetailsHeader.textContent = `Trip ${selectedTrip.tripNumber} Details`;
+                const tripNav = document.createElement('div');
+                tripNav.className = 'button-group';
+                
+                const prevButton = document.createElement('button');
+                prevButton.textContent = 'Previous Trip';
+                prevButton.disabled = selectedTrip.tripNumber === 1;
+                prevButton.onclick = () => {
+                    const prevTrip = currentTrips.find(t => t.tripNumber === selectedTrip.tripNumber - 1);
+                    if (prevTrip) displayTrip(prevTrip);
+                };
+                
+                const nextButton = document.createElement('button');
+                nextButton.textContent = 'Next Trip';
+                nextButton.disabled = selectedTrip.tripNumber === currentTrips.length;
+                nextButton.onclick = () => {
+                    const nextTrip = currentTrips.find(t => t.tripNumber === selectedTrip.tripNumber + 1);
+                    if (nextTrip) displayTrip(nextTrip);
+                };
+                
+                const backButton = document.createElement('button');
+                backButton.textContent = 'Trip List';
+                backButton.onclick = () => {
+                    selectedTrip = null;
+                    displayCurrentData();
+                    updateURLHash();
+                };
+
+                tripNav.appendChild(prevButton);
+                tripNav.appendChild(nextButton);
+                tripNav.appendChild(backButton);
+                navigationButtons.appendChild(tripNav);
+            } else if (currentRunData) {  // Only show toggle button if we have run data
+                tripDetailsHeader.textContent = '';
+                const toggleButton = document.createElement('button');
+                toggleButton.id = 'toggleView';
+                toggleButton.textContent = showingAllTimings ? 'Show Trips' : 'Show All Timings';
+                toggleButton.className = showingAllTimings ? 'red-background' : '';
+                toggleButton.onclick = toggleView;
+                toggleButton.style.marginBottom = '5px';
+                navigationButtons.appendChild(toggleButton);
+            }
+        }
+
+        async function processCSVFromURL() {
+            const hash = window.location.hash.substring(1);
+            
+            // If no hash, redirect to first timetable and return early
+            if (!hash) {
+                const firstTimetable = Object.keys(timetablePaths)[0];
+                if (firstTimetable) {
+                    window.location.hash = `#timetable=${firstTimetable}`;
+                }
+                return;
+            }
+            
+            const urlParams = new URLSearchParams(hash);
+            
+            // Get all parameters in the hash
+            const params = Array.from(urlParams.keys());
+            
+            // Clear run data if we're at the base timetable URL
+            if (params.length === 1 && params[0] === 'timetable') {
+                clearRunSelection();
+            }
+            
+            // Special handling for archived view
+            if (params.length === 1 && params[0] === 'archived') {
+                showArchivedTimetables();
+                clearRunSelection();
+                return;
+            }
+                
+            // Define valid parameter orders
+            const validOrders = [
+                ['timetable'],
+                ['timetable', 'run'],
+                ['timetable', 'run', 'showall'],
+                ['timetable', 'run', 'trip'],
+                ['archived'] 
+            ];
+                
+            // Check if the parameter order matches any valid order
+            const isValidOrder = validOrders.some(order => 
+                params.length === order.length && 
+                params.every((param, index) => param === order[index])
+            );
+                
+            if (!isValidOrder) {
+                alert('The URL you entered is invalid.');
+                const firstTimetable = Object.keys(timetablePaths)[0];
+                if (firstTimetable) {
+                    window.location.hash = `#timetable=${firstTimetable}`;
+                }
+                clearRunSelection();
+                return;
+            }
+
+            const timetable = urlParams.get('timetable');
+            const run = urlParams.get('run');
+            const trip = urlParams.get('trip');
+            const showall = urlParams.has('showall');
+
+            // Check if timetable exists in either active or archived paths
+            currentPath = timetablePaths[timetable] || archivedTimetablePaths[timetable]?.url;
+            if (!timetable || !currentPath) {
+                alert('No data matches the URL you entered.');
+                const firstTimetable = Object.keys(timetablePaths)[0];
+                if (firstTimetable) {
+                    window.location.hash = `#timetable=${firstTimetable}`;
+                }
+                clearRunSelection();
+                return;
+            }
+
+            // Set the appropriate timetable in the dropdown selector
+            isLoadingFromURL = true;
+            if (timetablePaths[timetable]) {
+                document.getElementById('daySelector').value = timetable;
+            } else {
+                const select = document.getElementById('daySelector');
+                // Remove any previous archived options
+                Array.from(select.options).forEach(option => {
+                    if (!timetablePaths[option.value]) {
+                        select.removeChild(option);
+                    }
+                });
+                // Add the new archived option
+                const tempOption = document.createElement('option');
+                tempOption.value = timetable;
+                tempOption.textContent = archivedTimetablePaths[timetable].name;
+                select.appendChild(tempOption);
+                select.value = timetable;
+            }
+            isLoadingFromURL = false;
+
+            await processCSV();
+
+            // Check if run number exists in the data
+            if (run) {
+                if (!currentRunData || !currentRunData[run]) {
+                    alert('No data matches the URL you entered.');
+                    window.location.hash = `#timetable=${timetable}`;
+                    clearRunSelection();
+                    return;
+                }
+                displayDetails(run, currentRunData[run]);
+
+                // Check if trip number is valid
+                if (trip) {
+                    const tripNumber = parseInt(trip, 10);
+                    const selectedTripData = currentTrips.find(t => t.tripNumber === tripNumber);
+                    if (!selectedTripData) {
+                        alert('No data matches the URL you entered.');
+                        window.location.hash = `#timetable=${timetable}&run=${run}`;
+                        selectedTrip = null;
+                        displayCurrentData();
+                        return;
+                    }
+                    displayTrip(selectedTripData);
+                }
+            } else {
+                clearRunSelection(); // Clear run data if no run parameter is present
+            }
+
+            if (showall) {
+                showingAllTimings = true;
+                displayCurrentData();
+            }
+        }
+
+        async function processCSVAndUpdateURL() {
+            if (isLoadingFromURL) return; // Don't process if loading from URL
+            
+            const day = document.getElementById('daySelector').value;
+            clearRunSelection(); // Always clear run selection when changing timetables
+            currentPath = timetablePaths[day];
+            window.location.hash = `#timetable=${day}`;
+            await processCSV();
+        }
+
+        const locationMapping = {
+            'ABR': 'Abbey Road', 'ALS': 'All Saints', 'BAN': 'Bank', 'BEC': 'Beckton', 
+            'BEP': 'Beckton Park', 'BLA': 'Blackwall', 'BOC': 'Bow Church', 'CAW': 'Canary Wharf',
+            'CAT': 'Canning Town', 'CRO': 'Crossharbour', 'CUH': 'Custom House', 'CUS': 'Cutty Sark',
+            'CYP': 'Cyprus', 'DEB': 'Deptford Bridge', 'DER': 'Devons Road', 'EAI': 'East India',
+            'ELR': 'Elverson Road', 'GAR': 'Gallions Reach', 'GRE': 'Greenwich', 'HEQ': 'Heron Quays',
+            'ISG': 'Island Gardens', 'KGV': 'King George V', 'LAP': 'Langdon Park', 'LEW': 'Lewisham',
+            'LIM': 'Limehouse', 'LCA': 'London City Airport', 'MUD': 'Mudchute', 'PDK': 'Pontoon Dock',
+            'POP': 'Poplar', 'PRR': 'Prince Regent', 'PML': 'Pudding Mill Lane', 'ROA': 'Royal Albert',
+            'ROV': 'Royal Victoria', 'SHA': 'Shadwell', 'SOQ': 'South Quay', 'STL': 'Star Lane',
+            'SHS': 'Stratford High Street', 'STI': 'Stratford International', 'STR': 'Stratford',
+            'TOG': 'Tower Gateway', 'WEH': 'West Ham', 'WIQ': 'West India Quay', 'WST': 'West Silvertown',
+            'WES': 'Westferry', 'WOA': 'Woolwich Arsenal'
+        };
+
+        async function processCSV() {
+            let csvText = '';
+            try {
+                if (isOfflineMode && preloadedData.timetables) {
+                    // Extract the filename from the URL
+                    const fileName = currentPath.substring(currentPath.lastIndexOf('/') + 1, currentPath.lastIndexOf('.'));
+                    csvText = preloadedData.timetables[fileName] || '';
+                } else {
+                    const response = await fetch(currentPath);
+                    csvText = await response.text();
+                }
+            } catch (error) {
+                console.error('Error loading CSV data:', error);
+                return;
+            }
+
+            const lines = csvText.split('\n').filter(line => line.trim() !== '');
+            const runData = {};
+
+            const junctions = [
+                'JRMS', 'JRMX', 'JCAW', 'JWEM', 'JCRO', 'JC2M', 'JC3M',
+                'JC4M', 'JROM', 'JWEX', 'JCTM', 'JCTX', 'JWIQ', 'JNQX',
+                'JNQM', 'JWSX', 'JWSM', 'ISP2', 'ISP3'
+            ];
+
+            lines.forEach((line, index) => {
+                const parts = line.split(',');
+                if (parts.length >= 7) {
+                    const runNumber = parts[1].trim();
+                    const locationCode = parts[4].trim();
+                    const arrivalTime = parts[5].trim();
+                    const departureTime = parts[6].trim();
+
+                    if (!junctions.includes(locationCode)) {
+                        if (!runData[runNumber]) {
+                            runData[runNumber] = [];
+                        }
+
+                        let location = '';
+                        let platform = '';
+
+                        if (locationCode === 'BANH') {
+                            location = 'Bank Headshunt';
+                        } else {
+                            const codePrefix = locationCode.slice(0, 3);
+                            platform = locationCode.slice(3);
+
+                            if (locationMapping[codePrefix]) {
+                                location = locationMapping[codePrefix];
+                                if (['LEW', 'BEC', 'STI', 'WOA'].includes(codePrefix) || locationCode === 'STR4B') {
+                                    platform = '';
+                                }
+                            } else {
+                                location = locationCode;
+                                platform = '';
+                            }
+                        }
+
+                        runData[runNumber].push({
+                            location,
+                            platform,
+                            arrivalTime,
+                            departureTime
+                        });
+                    }
+                }
+            });
+
+            currentRunData = runData;
+
+            const runNumberList = document.getElementById('runNumberList');
+            runNumberList.innerHTML = '';
+
+            Object.keys(runData).forEach(runNumber => {
+                const div = document.createElement('div');
+                div.textContent = runNumber;
+                div.className = 'run-number';
+                div.onclick = () => {
+                    displayDetails(runNumber, runData[runNumber]);
+                    updateURLHash();
+                };
+                runNumberList.appendChild(div);
+            });
+            
+            // Detect transitions between runs (same physical train changing run number)
+            runTransitions = await detectRunTransitions();
+        }
+
+        function toggleView() {
+            showingAllTimings = !showingAllTimings;
+            selectedTrip = null;
+            displayCurrentData();
+            updateURLHash();
+        }
+
+        function displayTrip(trip) {
+            selectedTrip = trip;
+            displayCurrentData();
+            updateURLHash();
+        }
+
+        function displayCurrentData() {
+            const detailsOutput = document.getElementById('detailsOutput');
+            const runNumber = document.getElementById('currentRun').textContent.split(' ')[1];
+            
+            if (!currentRunData) {
+                detailsOutput.innerHTML = 'Select a run to view info, or switch to <a href="/search" style="color: #1e88e5; text-decoration: none;">search by location</a> (New!)';
+                return;
+            }
+
+            updateNavigationButtons();
+
+            if (showingAllTimings) {
+                displayStopsTable(currentRunData);
+            } else if (selectedTrip) {
+                // Create a special parameter object to control which transition messages to show
+                const tripParams = {
+                    runNumber: runNumber,
+                    showFormedFrom: selectedTrip.tripNumber === 1,  // Only on first trip
+                    showFormsRun: selectedTrip.tripNumber === currentTrips.length  // Only on last trip
+                };
+                
+                detailsOutput.innerHTML = `
+                    ${createStopsTable(selectedTrip.stops, tripParams)}
+                `;
+            } else {
+                currentTrips = detectTrips(currentRunData);
+                displayTripsTable(currentTrips, runNumber);
+            }
+        }
+
+        function filterTable() {
+            const locationFilter = document.getElementById('locationFilter').value.toLowerCase();
+            const platformFilter = document.getElementById('platformFilter').value.toLowerCase();
+            
+            const tableRows = document.querySelectorAll('#detailsOutput table.stops-table tbody tr');
+            
+            tableRows.forEach(row => {
+                const location = row.cells[0].textContent.toLowerCase();
+                const platform = row.cells[1].textContent.toLowerCase();
+                
+                const locationMatch = location.includes(locationFilter);
+                const platformMatch = platform.includes(platformFilter);
+                
+                // Show row if both filters match (or if that filter is empty)
+                if ((locationMatch || locationFilter === '') && 
+                    (platformMatch || platformFilter === '')) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+        function clearFilters() {
+            document.getElementById('locationFilter').value = '';
+            document.getElementById('platformFilter').value = '';
+            filterTable(); // Re-run filter to show all rows
+        }
+
+        function displayDetails(runNumber, data) {
+            currentRunData = data;
+            showingAllTimings = false;
+            selectedTrip = null;
+            document.getElementById('currentRun').textContent = `Run ${runNumber}`;
+            displayCurrentData();
+        }
+
+        function createStopsTable(stops, params) {
+            // Handle different parameter formats
+            let runNumber = null;
+            let showFormedFrom = true;
+            let showFormsRun = true;
+            
+            if (typeof params === 'string') {
+                // Old format: just the run number
+                runNumber = params;
+            } else if (params && typeof params === 'object') {
+                // New format: parameter object
+                runNumber = params.runNumber;
+                showFormedFrom = params.showFormedFrom !== false;
+                showFormsRun = params.showFormsRun !== false;
+            }
+            
+            let tableHTML = '';
+            
+            // Add "Formed from" message if applicable, BEFORE the table starts
+            if (runNumber && showFormedFrom) {
+                const formedFrom = getFormedFromRun(runNumber);
+                if (formedFrom) {
+                    const timetable = document.getElementById('daySelector').value;
+                    const previousRunURL = `#timetable=${timetable}&run=${formedFrom.fromRun}`;
+                    
+                    // Get the actual last location of the previous run
+                    let previousRunLastLocation = '';
+                    if (currentRunData[formedFrom.fromRun]) {
+                        const previousRunStops = currentRunData[formedFrom.fromRun];
+                        const lastStop = previousRunStops[previousRunStops.length - 1];
+                        previousRunLastLocation = lastStop.location;
+                    }
+
+                    // If still empty, try to convert from the transition detection
+                    if (!previousRunLastLocation && formedFrom.location) {
+                        previousRunLastLocation = locationMapping[formedFrom.location.slice(0, 3)] || formedFrom.location;
+                    }
+
+                    // Fallback to something meaningful if location is empty
+                    if (!previousRunLastLocation) {
+                        previousRunLastLocation = 'Unknown Location';
+                    }
+                    
+                    tableHTML += `
+                        <div style="
+                            display: flex; 
+                            justify-content: center; 
+                            align-items: center; 
+                            cursor: pointer; 
+                            background-color: #f72f5e; 
+                            border: 1px solid #424242; 
+                            padding: 5px; 
+                            transition: background-color 0.3s; 
+                            height: 30px;"
+                            onclick="window.location.hash='${previousRunURL}'"
+                            onmouseover="this.style.backgroundColor='#d61c4e'"
+                            onmouseout="this.style.backgroundColor='#f72f5e'">
+                            <span style="color: #ffffff; font-weight: bold; font-size: 0.9em !important;">
+                                ↪ Formed from Run ${formedFrom.fromRun} departing ${previousRunLastLocation}
+                            </span>
+                        </div>
+                    `;
+                }
+            }
+            
+            // Now start the main table
+            tableHTML += `
+                <table class="stops-table" style="margin-top: 0;">
+                    <thead>
+                        <tr>
+                            <th>Location</th>
+                            <th>Pl</th>
+                            <th>Arriving</th>
+                            <th>Departing</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            stops.forEach(entry => {
+                tableHTML += `
+                    <tr>
+                        <td>${entry.location}</td>
+                        <td>${entry.platform}</td>
+                        <td>${entry.arrivalTime}</td>
+                        <td>${entry.departureTime}</td>
+                    </tr>
+                `;
+            });
+
+            // Close the table
+            tableHTML += `
+                    </tbody>
+                </table>
+            `;
+
+            // Add "Forms Run" message if applicable, AFTER the table as a separate div
+            if (runNumber && showFormsRun && runTransitions[runNumber]) {
+                const nextRun = runTransitions[runNumber].nextRun;
+                const location = runTransitions[runNumber].toLocation || runTransitions[runNumber].location;
+                
+                const timetable = document.getElementById('daySelector').value;
+                const nextRunURL = `#timetable=${timetable}&run=${nextRun}`;
+                
+                tableHTML += `
+                    <div style="
+                        display: flex; 
+                        justify-content: center; 
+                        align-items: center; 
+                        cursor: pointer; 
+                        background-color: #f72f5e; 
+                        border: 1px solid #424242; 
+                        padding: 5px; 
+                        transition: background-color 0.3s; 
+                        height: 30px;
+                        margin-top: 0;"
+                        onclick="window.location.hash='${nextRunURL}'"
+                        onmouseover="this.style.backgroundColor='#d61c4e'"
+                        onmouseout="this.style.backgroundColor='#f72f5e'">
+                        <span style="color: #ffffff; font-weight: bold; font-size: 0.9em !important;">
+                            ↪ Forms Run ${nextRun} arriving at ${location}
+                        </span>
+                    </div>
+                `;
+            }
+
+            return tableHTML;
+        }
+
+        function displayStopsTable(stops) {
+            const runNumber = document.getElementById('currentRun').textContent.split(' ')[1];
+            const detailsOutput = document.getElementById('detailsOutput');
+            
+            // Add filter inputs before the table
+            const filterHTML = `
+                <div class="filter-container" style="margin-bottom: 10px; display: flex; gap: 5px;">
+                    <input type="text" id="locationFilter" placeholder="Filter by location" style="flex: 2; padding: 5px; background-color: #2c2c2c; color: white; border: 1px solid #424242; border-radius: 4px;">
+                    <input type="text" id="platformFilter" placeholder="Filter by platform" style="flex: 1; padding: 5px; background-color: #2c2c2c; color: white; border: 1px solid #424242; border-radius: 4px;">
+                </div>
+            `;
+            
+            // Combine filter and table HTML
+            detailsOutput.innerHTML = filterHTML + createStopsTable(stops, {
+                runNumber: runNumber,
+                showFormedFrom: true,
+                showFormsRun: true
+            });
+            
+            // Add event listeners for filtering
+            document.getElementById('locationFilter').addEventListener('input', filterTable);
+            document.getElementById('platformFilter').addEventListener('input', filterTable);
+        }
+
+        function displayTripsTable(trips, runNumber) {
+            let tableHTML = '';
+            
+            // Add "Formed from" message if applicable, BEFORE the table starts
+            if (runNumber) {
+                const formedFrom = getFormedFromRun(runNumber);
+                if (formedFrom) {
+                    const timetable = document.getElementById('daySelector').value;
+                    const previousRunURL = `#timetable=${timetable}&run=${formedFrom.fromRun}`;
+                    
+                    // Get the actual last location of the previous run
+                    let previousRunLastLocation = '';
+                    if (currentRunData[formedFrom.fromRun]) {
+                        const previousRunStops = currentRunData[formedFrom.fromRun];
+                        const lastStop = previousRunStops[previousRunStops.length - 1];
+                        previousRunLastLocation = lastStop.location;
+                    }
+
+                    // If still empty, try to convert from the transition detection
+                    if (!previousRunLastLocation && formedFrom.location) {
+                        previousRunLastLocation = locationMapping[formedFrom.location.slice(0, 3)] || formedFrom.location;
+                    }
+
+                    // Fallback to something meaningful if location is empty
+                    if (!previousRunLastLocation) {
+                        previousRunLastLocation = 'Unknown Location';
+                    }
+                    
+                    tableHTML += `
+                        <div style="
+                            display: flex; 
+                            justify-content: center; 
+                            align-items: center; 
+                            cursor: pointer; 
+                            background-color: #f72f5e; 
+                            border: 1px solid #424242; 
+                            padding: 5px; 
+                            transition: background-color 0.3s; 
+                            height: 30px;"
+                            onclick="window.location.hash='${previousRunURL}'"
+                            onmouseover="this.style.backgroundColor='#d61c4e'"
+                            onmouseout="this.style.backgroundColor='#f72f5e'">
+                            <span style="color: #ffffff; font-weight: bold; font-size: 0.9em !important;">
+                                ↪ Formed from Run ${formedFrom.fromRun} departing ${previousRunLastLocation}
+                            </span>
+                        </div>
+                    `;
+                }
+            }
+            
+            // Now start the main table
+            tableHTML += `
+                <table class="trip-list-table" style="margin-top: 0;">
+                    <thead>
+                        <tr>
+                            <th>Trip</th>
+                            <th>From</th>
+                            <th>Departing</th>
+                            <th>To</th>
+                            <th>Arriving</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            trips.forEach(trip => {
+                tableHTML += `
+                    <tr class="clickable" onclick="displayTrip(${JSON.stringify(trip).replace(/"/g, '&quot;')})">
+                        <td style="color: #1e88e5; cursor: pointer;">${trip.tripNumber}</td>
+                        <td>${trip.from}</td>
+                        <td>${trip.departureTime}</td>
+                        <td>${trip.to}</td>
+                        <td>${trip.arrivalTime}</td>
+                    </tr>
+                `;
+            });
+
+            // Close the table
+            tableHTML += `
+                    </tbody>
+                </table>
+            `;
+
+            // Add "Forms Run" message if applicable, AFTER the table as a separate div
+            if (runNumber && runTransitions[runNumber]) {
+                const nextRun = runTransitions[runNumber].nextRun;
+                const location = runTransitions[runNumber].toLocation || runTransitions[runNumber].location;
+                
+                const timetable = document.getElementById('daySelector').value;
+                const nextRunURL = `#timetable=${timetable}&run=${nextRun}`;
+                
+                tableHTML += `
+                    <div style="
+                        display: flex; 
+                        justify-content: center; 
+                        align-items: center; 
+                        cursor: pointer; 
+                        background-color: #f72f5e; 
+                        border: 1px solid #424242; 
+                        padding: 5px; 
+                        transition: background-color 0.3s; 
+                        height: 30px;
+                        margin-top: 0;"
+                        onclick="window.location.hash='${nextRunURL}'"
+                        onmouseover="this.style.backgroundColor='#d61c4e'"
+                        onmouseout="this.style.backgroundColor='#f72f5e'">
+                        <span style="color: #ffffff; font-weight: bold; font-size: 0.9em !important;">
+                            ↪ Forms Run ${nextRun} arriving at ${location}
+                        </span>
+                    </div>
+                `;
+            }
+
+            document.getElementById('detailsOutput').innerHTML = tableHTML;
+        }
+
+        function updateURLHash() {
+            const timetable = document.getElementById('daySelector').value;
+            const run = currentRunData ? document.getElementById('currentRun').textContent.split(' ')[1] : null;
+            const trip = selectedTrip ? selectedTrip.tripNumber : null;
+            
+            let hash = `timetable=${timetable}`;
+            if (run) hash += `&run=${run}`;
+            if (showingAllTimings) hash += '&showall';
+            if (trip) hash += `&trip=${trip}`;
+            window.location.hash = hash;
+        }
+
+        function clearRunSelection() {
+            currentRunData = null;
+            selectedTrip = null;
+            document.getElementById('currentRun').textContent = '';
+            document.getElementById('detailsOutput').innerHTML = 'Select a run to view info, or switch to <a href="/search" style="color: #1e88e5; text-decoration: none;">search by location</a> (New!)';
+            updateNavigationButtons();
+        }
+    </script>
+</body>
+</html>
