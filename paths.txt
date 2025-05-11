@@ -4,6 +4,6 @@ URL: https://raw.githubusercontent.com/dlrttbl/dlrttbl.github.io/refs/heads/main
 Name: Saturdays
 Applies: 'Saturday'
 URL: https://raw.githubusercontent.com/dlrttbl/dlrttbl.github.io/refs/heads/main/active%20timetables/241109sa-public.csv
-Name: Sundays
+Name: Jubilee
 Applies: 'Sunday'
-URL: https://raw.githubusercontent.com/dlrttbl/dlrttbl.github.io/refs/heads/main/active%20timetables/241110su-public.csv
+URL: https://raw.githubusercontent.com/OmariInLondon/dlrtest/refs/heads/main/timetables/converted_cuf_full_timetable.csv
