@@ -10,3 +10,12 @@ URL: https://raw.githubusercontent.com/OmariInLondon/dlrtest/refs/heads/main/tim
 Name: Jubilee Sun
 Applies: 'Sunday'
 URL: https://raw.githubusercontent.com/OmariInLondon/dlrtest/refs/heads/main/timetables/J1033T016000333SUNEVT_DLR.csv
+Name: District Mon-Fri
+Applies: 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'
+URL: https://raw.githubusercontent.com/OmariInLondon/dlrtest/refs/heads/main/timetables/D8114T149000111MTFEVT_DLR.csv
+Name: District Sat
+Applies: 'Saturday'
+URL: https://raw.githubusercontent.com/OmariInLondon/dlrtest/refs/heads/main/timetables/D8120T149000211SATEVT_DLR.csv
+Name: District Sun
+Applies: 'Sunday'
+URL: https://raw.githubusercontent.com/OmariInLondon/dlrtest/refs/heads/main/timetables/D8124T149000311SUNEVT_DLR.csv
