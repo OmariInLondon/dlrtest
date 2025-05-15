@@ -1,9 +1,12 @@
-Name: Weekdays
-Applies: 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'
-URL: https://raw.githubusercontent.com/dlrttbl/dlrttbl.github.io/refs/heads/main/active%20timetables/241104mf-public.csv
-Name: Saturdays
+Name: Jubilee Mon-Thu
+Applies: 'Monday', 'Tuesday', 'Wednesday', 'Thursday'
+URL: https://raw.githubusercontent.com/OmariInLondon/dlrtest/refs/heads/main/timetables/J1030T016000833MTHEVT_DLR.csv
+Name: Jubilee Fri
+Applies: 'Friday'
+URL: https://raw.githubusercontent.com/OmariInLondon/dlrtest/refs/heads/main/timetables/J1031T016000533FRIEVT_DLR.csv
+Name: Jubilee Sat
 Applies: 'Saturday'
-URL: https://raw.githubusercontent.com/dlrttbl/dlrttbl.github.io/refs/heads/main/active%20timetables/241109sa-public.csv
-Name: Jubilee
+URL: https://raw.githubusercontent.com/OmariInLondon/dlrtest/refs/heads/main/timetables/J1032T016000233SATEVT_DLR.csv
+Name: Jubilee Sun
 Applies: 'Sunday'
-URL: https://raw.githubusercontent.com/OmariInLondon/dlrtest/refs/heads/main/timetables/converted_cuf_full_timetable.csv
+URL: https://raw.githubusercontent.com/OmariInLondon/dlrtest/refs/heads/main/timetables/J1033T016000333SUNEVT_DLR.csv
